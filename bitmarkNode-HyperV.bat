@@ -211,8 +211,6 @@ REM Setup directories if they already don't exist
 :DirectorySetup
 	echo Performing setup now...
 
-	for /f "tokens=2 delims=: " %%A in ( 'nslookup myip.opendns.com. resolver1.opendns.com 2^>NUL^|find "Address:"' ) Do set EXT_IP=%%A
-
 	IF NOT EXIST "%APPDATA%\bitmark-node-data\db" (
 		mkdir "%APPDATA%\bitmark-node-data\db"
 		echo "The directory %APPDATA%\bitmark-node-data\db does not exist. Creating it now..."
@@ -267,10 +265,25 @@ REM Allow the user to pick the network if one isn't chosen
 
 :Bitmark
 	set CURR_NETWORK=bitmark
-	GOTO Create
+	GOTO IPAddress
 
 :Testing
 	set CURR_NETWORK=testing
+	GOTO IPAddress
+
+REM Get the IP Address and check for an internet connection - returns IP address of fec0
+:IPAddress
+	for /f "tokens=2 delims=: " %%A in ( 'nslookup myip.opendns.com. resolver1.opendns.com 2^>NUL^|find "Address:"' ) Do set EXT_IP=%%A
+
+	IF "%EXT_IP%" == "fec0" (
+		GOTO NoConnection
+	)
+	GOTO Create
+
+REM If there is no internet connection, let the user know and set their IP address to 127.0.0.1
+:NoConnection
+	echo Failed to get public IP address. Please check your internet connection. Your public IP address is being set to 127.0.0.1.
+	set CURR_PUBLIC_IP=127.0.0.1
 	GOTO Create
 
 REM Create the docker container
